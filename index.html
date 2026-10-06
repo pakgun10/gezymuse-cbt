@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBT Sederhana — Ujian Online</title>
+<style>
+  :root{
+    --navy:#16295e; --navy2:#0f1d45; --gold:#d9a62e; --bg:#f2f4fa;
+    --card:#ffffff; --teks:#1e2433; --abu:#8a93a8; --hijau:#1e9e5a; --merah:#d64545;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+       background:var(--bg); color:var(--teks); min-height:100vh;}
+  header{background:linear-gradient(135deg,var(--navy),var(--navy2)); color:#fff;
+         padding:18px 16px; text-align:center; position:sticky; top:0; z-index:10;}
+  header h1{font-size:1.15rem; letter-spacing:.3px;}
+  header p{font-size:.8rem; opacity:.85; margin-top:4px;}
+  main{max-width:640px; margin:0 auto; padding:16px 14px 90px;}
+  .kartu{background:var(--card); border-radius:14px; padding:20px 18px;
+         box-shadow:0 2px 10px rgba(22,41,94,.08); margin-bottom:14px;}
+  .kartu h2{font-size:1.05rem; margin-bottom:14px; color:var(--navy);}
+  label{display:block; font-size:.85rem; font-weight:600; margin:12px 0 6px;}
+  input[type=text],input[type=number]{width:100%; padding:12px 14px; font-size:1rem;
+    border:1.5px solid #d5dbe8; border-radius:10px; background:#fbfcff;}
+  input:focus{outline:none; border-color:var(--navy);}
+  .btn{display:block; width:100%; padding:14px; font-size:1rem; font-weight:700;
+    border:none; border-radius:10px; cursor:pointer; margin-top:16px;}
+  .btn-utama{background:var(--navy); color:#fff;}
+  .btn-utama:disabled{opacity:.55; cursor:wait;}
+  .btn-emas{background:var(--gold); color:#3a2c00;}
+  .btn-ghost{background:#eef1f8; color:var(--navy); margin-top:10px;}
+  .info{font-size:.82rem; color:var(--abu); margin-top:12px; line-height:1.5;}
+  /* ---- layar ujian ---- */
+  .bar-ujian{display:flex; justify-content:space-between; align-items:center;
+    font-size:.82rem; color:var(--abu); margin-bottom:10px;}
+  .soal-teks{font-size:1.02rem; font-weight:600; line-height:1.55; margin-bottom:14px;}
+  /* pecahan bertingkat: tulis [[3/4]] di Sheet, tampil sebagai pecahan susun */
+  .pecahan{display:inline-flex; flex-direction:column; vertical-align:middle;
+    text-align:center; line-height:1.2; margin:0 .12em; font-size:.95em;}
+  .pecahan>span:first-child{border-bottom:2px solid currentColor; padding:0 .3em;}
+  .pecahan>span:last-child{padding:0 .3em;}
+  .opsi{display:block; width:100%; text-align:left; padding:13px 14px; margin-bottom:10px;
+    font-size:.95rem; border:1.5px solid #d5dbe8; border-radius:10px; background:#fbfcff;
+    cursor:pointer; line-height:1.45;}
+  .opsi .huruf{display:inline-flex; width:28px; height:28px; border-radius:50%;
+    background:#e7ebf5; color:var(--navy); font-weight:700; font-size:.85rem;
+    align-items:center; justify-content:center; margin-right:10px;}
+  .opsi.pilih{border-color:var(--navy); background:#eef2ff;}
+  .opsi.pilih .huruf{background:var(--navy); color:#fff;}
+  .nav-soal{display:flex; gap:10px; margin-top:6px;}
+  .nav-soal .btn{margin-top:0;}
+  .peta{display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:14px;}
+  .peta button{aspect-ratio:1; border-radius:8px; border:1.5px solid #d5dbe8;
+    background:#fff; font-weight:700; color:var(--abu); cursor:pointer; font-size:.9rem;}
+  .peta button.isi{background:var(--navy); color:#fff; border-color:var(--navy);}
+  .peta button.aktif{outline:3px solid var(--gold); color:var(--navy);}
+  .peta button.isi.aktif{color:#fff;}
+  /* ---- hasil ---- */
+  .skor-besar{text-align:center; padding:10px 0 4px;}
+  .skor-besar .angka{font-size:3.4rem; font-weight:800; color:var(--navy);}
+  .skor-besar .sub{color:var(--abu); font-size:.9rem; margin-top:4px;}
+  .review{border-top:1px solid #e6eaf3; padding:12px 0; font-size:.9rem;}
+  .review .r-soal{font-weight:600; margin-bottom:6px; line-height:1.5;}
+  .review .r-baris{margin:3px 0; color:#3c4358;}
+  .badge{display:inline-block; padding:2px 10px; border-radius:20px; font-size:.75rem;
+    font-weight:700; margin-top:6px;}
+  .badge.benar{background:#e3f6ec; color:var(--hijau);}
+  .badge.salah{background:#fdeaea; color:var(--merah);}
+  /* ---- loading & modal ---- */
+  #loading{position:fixed; inset:0; background:rgba(15,29,69,.55); display:none;
+    align-items:center; justify-content:center; z-index:50; color:#fff; font-size:1rem;}
+  #loading .kotak{background:var(--navy2); padding:26px 34px; border-radius:14px; text-align:center;}
+  .spin{width:34px; height:34px; border:4px solid #ffffff44; border-top-color:#fff;
+    border-radius:50%; margin:0 auto 12px; animation:putar 0.9s linear infinite;}
+  @keyframes putar{to{transform:rotate(360deg);}}
+  #modal-guru{position:fixed; inset:0; background:rgba(15,29,69,.6); display:none;
+    align-items:flex-start; justify-content:center; z-index:60; padding:20px 12px; overflow:auto;}
+  #modal-guru .kartu{width:100%; max-width:720px;}
+  table.nilai{width:100%; border-collapse:collapse; font-size:.8rem; margin-top:12px;}
+  table.nilai th, table.nilai td{border:1px solid #dfe4f0; padding:8px 6px; text-align:left;}
+  table.nilai th{background:var(--navy); color:#fff;}
+  table.nilai tr:nth-child(even) td{background:#f7f9fe;}
+  .tutup{float:right; background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--abu);}
+  footer{position:fixed; bottom:0; left:0; right:0; text-align:center; padding:10px;
+    background:#ffffffdd; backdrop-filter:blur(4px); border-top:1px solid #e3e8f3; font-size:.8rem;}
+  footer a{color:var(--navy); font-weight:600; cursor:pointer; text-decoration:underline;}
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CBT Sederhana</h1>
+  <p id="subjudul">Ujian online berbasis Google Sheets</p>
+</header>
+
+<main>
+  <!-- ============ LAYAR 1: ISIAN PESERTA ============ -->
+  <section id="layar-masuk">
+    <div class="kartu">
+      <h2>Identitas Peserta</h2>
+      <label for="in-token">Token Ujian</label>
+      <input type="text" id="in-token" placeholder="cth: UTS-7A-01" autocomplete="off">
+      <label for="in-nama">Nama Lengkap</label>
+      <input type="text" id="in-nama" placeholder="Nama sesuai absen" autocomplete="off">
+      <label for="in-kelas">Kelas</label>
+      <input type="text" id="in-kelas" placeholder="cth: 7A" autocomplete="off">
+      <label for="in-absen">No. Absen</label>
+      <input type="number" id="in-absen" placeholder="cth: 12" min="1">
+      <button class="btn btn-utama" id="btn-mulai" onclick="mulaiUjian()">Mulai Ujian</button>
+      <p class="info">Isi semua kolom dengan benar. Satu nama + no. absen hanya bisa mengumpulkan jawaban <b>satu kali</b> per token.</p>
+    </div>
+  </section>
+
+  <!-- ============ LAYAR 2: MENGERJAKAN SOAL ============ -->
+  <section id="layar-ujian" class="hidden">
+    <div class="kartu">
+      <div class="bar-ujian">
+        <span id="u-peserta">-</span>
+        <span id="u-nomor">Soal 1/1</span>
+      </div>
+      <div class="soal-teks" id="u-soal">...</div>
+      <div id="u-opsi"></div>
+      <div class="nav-soal">
+        <button class="btn btn-ghost" onclick="geserSoal(-1)">‹ Sebelumnya</button>
+        <button class="btn btn-ghost" onclick="geserSoal(1)">Berikutnya ›</button>
+      </div>
+      <button class="btn btn-emas" onclick="kumpulkan()">Kumpulkan Jawaban</button>
+    </div>
+    <div class="kartu">
+      <h2>Peta Soal</h2>
+      <div class="peta" id="u-peta"></div>
+      <p class="info">Kotak biru = sudah dijawab. Pastikan semua kotak biru sebelum mengumpulkan.</p>
+    </div>
+  </section>
+
+  <!-- ============ LAYAR 3: HASIL ============ -->
+  <section id="layar-hasil" class="hidden">
+    <div class="kartu">
+      <h2>Hasil Ujian</h2>
+      <div class="skor-besar">
+        <div class="angka" id="h-skor">0</div>
+        <div class="sub" id="h-ringkasan">-</div>
+      </div>
+    </div>
+    <div class="kartu">
+      <h2>Pembahasan</h2>
+      <div id="h-review"></div>
+      <button class="btn btn-ghost" onclick="resetSemua()">Selesai / Keluar</button>
+    </div>
+  </section>
+</main>
+
+<footer><a onclick="bukaGuru()">Mode Guru</a> · CBT Sederhana</footer>
+
+<div id="loading"><div class="kotak"><div class="spin"></div><div id="loading-teks">Memuat...</div></div></div>
+
+<div id="modal-guru">
+  <div class="kartu">
+    <button class="tutup" onclick="tutupGuru()">✕</button>
+    <h2>Mode Guru — Unduh Nilai</h2>
+    <div id="guru-login">
+      <label for="in-guru-token">Token Guru</label>
+      <input type="text" id="in-guru-token" placeholder="Token khusus guru" autocomplete="off">
+      <button class="btn btn-utama" onclick="guruMasuk()">Lihat Nilai</button>
+    </div>
+    <div id="guru-data" class="hidden">
+      <p class="info" id="guru-info"></p>
+      <div style="overflow-x:auto">
+        <table class="nilai">
+          <thead><tr><th>Waktu</th><th>Token</th><th>Nama</th><th>Kelas</th><th>No</th><th>Benar</th><th>Total</th><th>Skor</th></tr></thead>
+          <tbody id="guru-tbody"></tbody>
+        </table>
+      </div>
+      <button class="btn btn-emas" onclick="unduhCSV()">⬇ Unduh Nilai (CSV)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   KONFIGURASI — GANTI dengan URL Web App dari Google Apps Script Anda.
+   Lihat PANDUAN.md langkah 3.
+   ===================================================================== */
+const SCRIPT_URL = "https://script.google.com/macros/s/PASTE_ID_ANDA/exec";
+
+/* ---------------- state ---------------- */
+const state = { token:"", nama:"", kelas:"", absen:"", soal:[], jawab:{}, idx:0, guruData:[] };
+
+/* ---------------- util JSONP ----------------
+   Dipakai agar halaman statis (GitHub Pages) bisa memanggil Apps Script
+   tanpa masalah CORS. */
+function jsonp(params, timeoutMs){
+  timeoutMs = timeoutMs || 20000;
+  return new Promise(function(resolve, reject){
+    const cb = "cb_" + Date.now() + "_" + Math.floor(Math.random()*1e6);
+    const q = new URLSearchParams(Object.assign({}, params, {callback: cb}));
+    const s = document.createElement("script");
+    let selesai = false;
+    const timer = setTimeout(function(){
+      if(!selesai){ selesai = true; bersih(); reject(new Error("timeout")); }
+    }, timeoutMs);
+    function bersih(){ clearTimeout(timer); try{ delete window[cb]; }catch(e){ window[cb]=undefined; } s.remove(); }
+    window[cb] = function(data){ if(!selesai){ selesai = true; bersih(); resolve(data); } };
+    s.onerror = function(){ if(!selesai){ selesai = true; bersih(); reject(new Error("network")); } };
+    s.src = SCRIPT_URL + "?" + q.toString();
+    document.body.appendChild(s);
+  });
+}
+function acak(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; }
+  return a;
+}
+function tampil(id){ document.getElementById(id).classList.remove("hidden"); }
+function sembunyi(id){ document.getElementById(id).classList.add("hidden"); }
+function loading(teks, nyala){
+  document.getElementById("loading-teks").textContent = teks || "Memuat...";
+  document.getElementById("loading").style.display = nyala ? "flex" : "none";
+}
+
+/* ---------------- layar 1: mulai ---------------- */
+async function mulaiUjian(){
+  if(SCRIPT_URL.indexOf("PASTE_ID_ANDA") !== -1){
+    alert("Konfigurasi belum lengkap.\n\nGuru: buka file index.html lalu ganti SCRIPT_URL\nsesuai PANDUAN.md langkah 3.");
+    return;
+  }
+  const token = document.getElementById("in-token").value.trim();
+  const nama  = document.getElementById("in-nama").value.trim();
+  const kelas = document.getElementById("in-kelas").value.trim();
+  const absen = document.getElementById("in-absen").value.trim();
+  if(!token || !nama || !kelas || !absen){ alert("Mohon lengkapi Token, Nama, Kelas, dan No. Absen."); return; }
+
+  const btn = document.getElementById("btn-mulai");
+  btn.disabled = true; loading("Memeriksa token...", true);
+  try{
+    const res = await jsonp({action:"mulai", token:token});
+    if(!res.ok){ alert(res.pesan || "Token tidak valid."); return; }
+    state.token = token; state.nama = nama; state.kelas = kelas; state.absen = absen;
+    state.jawab = {}; state.idx = 0;
+    // acak urutan soal & opsi (jawaban tetap tercatat dengan label aslinya)
+    state.soal = acak(res.soal).map(function(q){
+      return {
+        id: q.id, teks: q.soal,
+        opsi: acak([
+          {label:"A", teks:q.a},{label:"B", teks:q.b},
+          {label:"C", teks:q.c},{label:"D", teks:q.d}
+        ])
+      };
+    });
+    document.getElementById("subjudul").textContent = res.keterangan || ("Token: " + token);
+    document.getElementById("u-peserta").textContent = nama + " · " + kelas + "/" + absen;
+    sembunyi("layar-masuk"); tampil("layar-ujian"); sembunyi("layar-hasil");
+    buatPeta(); renderSoal();
+    window.scrollTo(0,0);
+  }catch(e){
+    alert("Tidak dapat terhubung ke server.\nPeriksa koneksi internet lalu coba lagi.");
+  }finally{
+    btn.disabled = false; loading("", false);
+  }
+}
+
+/* ---------------- layar 2: ujian ---------------- */
+function buatPeta(){
+  const peta = document.getElementById("u-peta"); peta.innerHTML = "";
+  state.soal.forEach(function(q, i){
+    const b = document.createElement("button");
+    b.textContent = i+1; b.id = "peta-" + i;
+    b.onclick = function(){ state.idx = i; renderSoal(); };
+    peta.appendChild(b);
+  });
+}
+function renderSoal(){
+  const q = state.soal[state.idx]; if(!q) return;
+  document.getElementById("u-nomor").textContent = "Soal " + (state.idx+1) + "/" + state.soal.length;
+  document.getElementById("u-soal").innerHTML = rapikan(q.teks);
+  const wadah = document.getElementById("u-opsi"); wadah.innerHTML = "";
+  q.opsi.forEach(function(o){
+    const b = document.createElement("button");
+    b.className = "opsi" + (state.jawab[q.id] === o.label ? " pilih" : "");
+    b.innerHTML = '<span class="huruf">' + o.label + "</span>" + rapikan(o.teks);
+    b.onclick = function(){ state.jawab[q.id] = o.label; renderSoal(); };
+    wadah.appendChild(b);
+  });
+  state.soal.forEach(function(qq, i){
+    const el = document.getElementById("peta-" + i);
+    if(el){
+      el.classList.toggle("isi", !!state.jawab[qq.id]);
+      el.classList.toggle("aktif", i === state.idx);
+    }
+  });
+  window.scrollTo(0,0);
+}
+function geserSoal(arah){
+  const n = state.idx + arah;
+  if(n >= 0 && n < state.soal.length){ state.idx = n; renderSoal(); }
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+/* Ubah notasi [[3/4]] menjadi pecahan bertingkat (aman dari XSS). */
+function rapikan(s){
+  return escapeHtml(s).replace(/\[\[(\d+)\s*\/\s*(\d+)\]\]/g,
+    '<span class="pecahan"><span>$1</span><span>$2</span></span>');
+}
+
+/* ---------------- kumpulkan & hasil ---------------- */
+async function kumpulkan(){
+  const terjawab = Object.keys(state.jawab).length;
+  const total = state.soal.length;
+  const sisa = total - terjawab;
+  let pesan = "Kumpulkan jawaban sekarang?\nTerjawab: " + terjawab + " dari " + total + " soal.";
+  if(sisa > 0) pesan += "\n\n⚠ Masih ada " + sisa + " soal belum dijawab!";
+  if(!confirm(pesan)) return;
+
+  loading("Mengirim jawaban...", true);
+  try{
+    const payload = {
+      token: state.token, nama: state.nama,
+      kelas: state.kelas, absen: state.absen, jawaban: state.jawab
+    };
+    const res = await jsonp({action:"submit", data: JSON.stringify(payload)}, 30000);
+    if(!res.ok){ alert(res.pesan || "Gagal mengirim jawaban."); return; }
+    tampilkanHasil(res);
+  }catch(e){
+    alert("Gagal mengirim jawaban.\nPeriksa koneksi lalu tekan Kumpulkan lagi.\n(Jawaban yang sudah tersimpan tidak hilang.)");
+  }finally{
+    loading("", false);
+  }
+}
+function tampilkanHasil(res){
+  document.getElementById("h-skor").textContent = res.skor;
+  document.getElementById("h-ringkasan").textContent =
+    state.nama + " · " + state.kelas + "/" + state.absen +
+    " — Benar " + res.benar + " dari " + res.total + " soal" +
+    (res.tersimpanUlang ? " (hasil tersimpan sebelumnya)" : "");
+  const wadah = document.getElementById("h-review"); wadah.innerHTML = "";
+  (res.review || []).forEach(function(r, i){
+    const div = document.createElement("div");
+    div.className = "review";
+    div.innerHTML =
+      '<div class="r-soal">' + (i+1) + ". " + rapikan(r.soal) + "</div>" +
+      '<div class="r-baris">Jawabanmu: <b>' + escapeHtml(r.jawab) + "</b> — " + rapikan(r.opsi[r.jawab] || "-") + "</div>" +
+      (r.benar ? "" : '<div class="r-baris">Kunci: <b>' + escapeHtml(r.kunci) + "</b> — " + rapikan(r.opsi[r.kunci] || "-") + "</div>") +
+      '<span class="badge ' + (r.benar ? "benar\">✓ Benar" : "salah\">✗ Salah") + "</span>";
+    wadah.appendChild(div);
+  });
+  sembunyi("layar-ujian"); tampil("layar-hasil");
+  window.scrollTo(0,0);
+}
+function resetSemua(){
+  state.token=""; state.nama=""; state.kelas=""; state.absen="";
+  state.soal=[]; state.jawab={}; state.idx=0;
+  ["in-token","in-nama","in-kelas","in-absen"].forEach(function(id){ document.getElementById(id).value=""; });
+  document.getElementById("subjudul").textContent = "Ujian online berbasis Google Sheets";
+  sembunyi("layar-ujian"); sembunyi("layar-hasil"); tampil("layar-masuk");
+}
+
+/* ---------------- mode guru ---------------- */
+function bukaGuru(){
+  document.getElementById("modal-guru").style.display = "flex";
+  document.getElementById("guru-login").classList.remove("hidden");
+  document.getElementById("guru-data").classList.add("hidden");
+}
+function tutupGuru(){ document.getElementById("modal-guru").style.display = "none"; }
+async function guruMasuk(){
+  const t = document.getElementById("in-guru-token").value.trim();
+  if(!t){ alert("Isi token guru dulu."); return; }
+  if(SCRIPT_URL.indexOf("PASTE_ID_ANDA") !== -1){ alert("SCRIPT_URL belum dikonfigurasi."); return; }
+  loading("Mengambil data nilai...", true);
+  try{
+    const res = await jsonp({action:"hasil", guru_token:t});
+    if(!res.ok){ alert(res.pesan || "Gagal."); return; }
+    state.guruData = res.data || [];
+    document.getElementById("guru-info").textContent =
+      "Ditemukan " + state.guruData.length + " baris nilai.";
+    const tb = document.getElementById("guru-tbody"); tb.innerHTML = "";
+    state.guruData.forEach(function(r){
+      const tr = document.createElement("tr");
+      r.forEach(function(c){ const td=document.createElement("td"); td.textContent=c; tr.appendChild(td); });
+      tb.appendChild(tr);
+    });
+    document.getElementById("guru-login").classList.add("hidden");
+    document.getElementById("guru-data").classList.remove("hidden");
+  }catch(e){
+    alert("Tidak dapat terhubung ke server.");
+  }finally{
+    loading("", false);
+  }
+}
+function unduhCSV(){
+  const baris = [["Waktu","Token","Nama","Kelas","No Absen","Benar","Total","Skor"]];
+  state.guruData.forEach(function(r){ baris.push(r); });
+  const csv = baris.map(function(r){
+    return r.map(function(c){ return '"' + String(c).replace(/"/g,'""') + '"'; }).join(";");
+  }).join("\r\n");
+  const blob = new Blob(["\ufeff" + csv], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "nilai-cbt-" + new Date().toISOString().slice(0,10) + ".csv";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+</script>
+</body>
+</html>
