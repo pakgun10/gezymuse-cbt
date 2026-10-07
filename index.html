@@ -29,6 +29,7 @@
   .btn-utama{background:var(--navy); color:#fff;}
   .btn-utama:disabled{opacity:.55; cursor:wait;}
   .btn-emas{background:var(--gold); color:#3a2c00;}
+  .btn-emas:disabled{opacity:.55; cursor:wait;}
   .btn-ghost{background:#eef1f8; color:var(--navy); margin-top:10px;}
   .info{font-size:.82rem; color:var(--abu); margin-top:12px; line-height:1.5;}
   /* ---- layar ujian ---- */
@@ -126,7 +127,7 @@
         <button class="btn btn-ghost" onclick="geserSoal(-1)">‹ Sebelumnya</button>
         <button class="btn btn-ghost" onclick="geserSoal(1)">Berikutnya ›</button>
       </div>
-      <button class="btn btn-emas" onclick="kumpulkan()">Kumpulkan Jawaban</button>
+      <button id="btn-kumpul" class="btn btn-emas" onclick="kumpulkan()">Kumpulkan Jawaban</button>
     </div>
     <div class="kartu">
       <h2>Peta Soal</h2>
@@ -309,6 +310,7 @@ function rapikan(s){
 
 /* ---------------- kumpulkan & hasil ---------------- */
 async function kumpulkan(){
+  if(state.mengirim) return; /* cegah submit ganda: ketukan ke-2 dst. diabaikan */
   const terjawab = Object.keys(state.jawab).length;
   const total = state.soal.length;
   const sisa = total - terjawab;
@@ -316,6 +318,9 @@ async function kumpulkan(){
   if(sisa > 0) pesan += "\n\n⚠ Masih ada " + sisa + " soal belum dijawab!";
   if(!confirm(pesan)) return;
 
+  state.mengirim = true;
+  const btnKumpul = document.getElementById("btn-kumpul");
+  if(btnKumpul) btnKumpul.disabled = true;
   loading("Mengirim jawaban...", true);
   try{
     const payload = {
@@ -328,6 +333,8 @@ async function kumpulkan(){
   }catch(e){
     alert("Gagal mengirim jawaban.\nPeriksa koneksi lalu tekan Kumpulkan lagi.\n(Jawaban yang sudah tersimpan tidak hilang.)");
   }finally{
+    state.mengirim = false;
+    if(btnKumpul) btnKumpul.disabled = false;
     loading("", false);
   }
 }
@@ -353,7 +360,7 @@ function tampilkanHasil(res){
 }
 function resetSemua(){
   state.token=""; state.nama=""; state.kelas=""; state.absen="";
-  state.soal=[]; state.jawab={}; state.idx=0;
+  state.soal=[]; state.jawab={}; state.idx=0; state.mengirim=false;
   ["in-token","in-nama","in-kelas","in-absen"].forEach(function(id){ document.getElementById(id).value=""; });
   document.getElementById("subjudul").textContent = "Ujian online berbasis Google Sheets";
   sembunyi("layar-ujian"); sembunyi("layar-hasil"); tampil("layar-masuk");
